@@ -42,27 +42,45 @@ public class UserMealsUtil {
                 .forEach(System.out::println);
     }
 
+    /**
+     * Filters list of UserMeal by left-opened hours interval and calories daily limit.<BR>
+     * Returns list of UserMealWithExcess (DTO for UserMeal) for elements that match given params.<BR>
+     * Uses cycles for iterations.
+     *
+     * @param meals list of UserMeal.
+     * @param startTime left bound of hours interval.
+     * @param endTime right bound of hours interval.
+     * @param caloriesPerDay calories daily limit.
+     *
+     * @return list of UserMealWithExcess.
+     */
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime,
                                                             LocalTime endTime, int caloriesPerDay) {
-        /* Time complexity #1 is O(N). */
+        /* Calculates sum of calories per distinct day from incoming list and puts it into map.
+        Time complexity #1 is O(N). */
         Map<LocalDate, Integer> caloriesSumPerDays = new HashMap<>();
         for (UserMeal um : meals) {
             int caloriesMeal = um.getCalories();
             LocalDate key = um.getDateTime().toLocalDate();
+            // If the same day isn't present, then puts new element into map, otherwise sums calories.
             if (caloriesSumPerDays.computeIfPresent(key, (k, v) -> v + caloriesMeal) == null) {
                 caloriesSumPerDays.put(key, caloriesMeal);
             }
         }
 
-        /* Time complexity #2 is O(N). */
-        List<UserMealWithExcess> result = new LinkedList<>();
+        /* Creates resulting list and adds elements into it by filtering during iteration over incoming list.
+        Time complexity #2 is O(N). */
+        List<UserMealWithExcess> result = new ArrayList<>();
         for (UserMeal um : meals) {
             LocalDateTime localDateTime = um.getDateTime();
+            // Filters by left-opened hours interval.
             if (TimeUtil.isBetweenHalfOpen(localDateTime.toLocalTime(), startTime, endTime)) {
-                Integer caloriesSum = caloriesSumPerDays.get(localDateTime.toLocalDate());
+                Integer caloriesSum = caloriesSumPerDays.getOrDefault(localDateTime.toLocalDate(), 0);
                 int caloriesMeal = um.getCalories();
+                /* Creates DTO for UserMeal, sets excess by comparing sum of calories per distinct day and calories
+                  daily limit. */
                 result.add(new UserMealWithExcess(localDateTime, um.getDescription(), caloriesMeal,
-                        caloriesSum == null ? caloriesPerDay < caloriesMeal : caloriesPerDay < caloriesSum));
+                         caloriesPerDay < caloriesSum));
             }
         }
         return result;
@@ -70,45 +88,82 @@ public class UserMealsUtil {
         /* Resulting time complexity (#1 + #2) is O(N) + O(N) = O(2N) = O(N). */
     }
 
+    /**
+     * Filters list of UserMeal by left-opened hours interval and calories daily limit.<BR>
+     * Returns list of UserMealWithExcess (DTO for UserMeal) for elements that match given params.<BR>
+     * Uses Stream API for iterations.
+     *
+     * @param meals list of UserMeal.
+     * @param startTime left bound of hours interval.
+     * @param endTime right bound of hours interval.
+     * @param caloriesPerDay calories daily limit.
+     *
+     * @return list of UserMealWithExcess.
+     */
     public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime,
                                                              LocalTime endTime, int caloriesPerDay) {
-        /* Time complexity #1 is O(N). */
+        /* Calculates sum of calories per distinct day from incoming list and puts it into map using
+        Stream API Collectors.
+        Time complexity #1 is O(N). */
         Map<LocalDate, Integer> caloriesSumPerDay = meals.stream()
                 .collect(Collectors.groupingBy(um -> um.getDateTime().toLocalDate(),
                         Collectors.summingInt(UserMeal::getCalories)));
 
-        /* Time complexity #2 is O(N). */
+        /* Creates resulting list and collects elements into it by filtering during iteration over incoming list.
+        Time complexity #2 is O(N). */
         return meals.stream()
+                // Filters by left-opened hours interval.
                 .filter(um -> TimeUtil.isBetweenHalfOpen(um.getDateTime().toLocalTime(), startTime, endTime))
-                .collect(LinkedList::new, (list, um) -> {
-                    Integer caloriesSum = caloriesSumPerDay.get(um.getDateTime().toLocalDate());
+                .collect(ArrayList::new, (list, um) -> {
+                    Integer caloriesSum = caloriesSumPerDay.getOrDefault(um.getDateTime().toLocalDate(), 0);
                     int caloriesMeal = um.getCalories();
+                    /* Creates DTO for UserMeal, sets excess by comparing sum of calories per distinct day and calories
+                    daily limit. */
                     list.add(new UserMealWithExcess(um.getDateTime(), um.getDescription(), caloriesMeal,
-                            caloriesSum == null ? caloriesPerDay < caloriesMeal : caloriesPerDay < caloriesSum));
-                }, LinkedList::addAll);
+                            caloriesPerDay < caloriesSum));
+                }, List::addAll);
 
         /* Resulting time complexity (#1 + #2) is O(N) + O(N) = O(2N) = O(N). */
     }
 
+    /**
+     * Filters list of UserMeal by left-opened hours interval and calories daily limit.<BR>
+     * Returns list of UserMealWithExcess (DTO for UserMeal) for elements that match given params.<BR>
+     * Uses Stream API for iterations and only one iteration over incoming collection.
+     *
+     * @param meals list of UserMeal.
+     * @param startTime left bound of hours interval.
+     * @param endTime right bound of hours interval.
+     * @param caloriesPerDay calories daily limit.
+     *
+     * @return list of UserMealWithExcess.
+     */
     public static List<UserMealWithExcess> filteredByStreamsAdvanced(List<UserMeal> meals, LocalTime startTime,
                                                                      LocalTime endTime, int caloriesPerDay) {
         return meals.stream()
-                /* Time complexity #1 is O(N). */
+                /* Groups incoming list into map by distinct day (LocalDate).
+                Time complexity #1 is O(N). */
                 .collect(Collectors.groupingBy(um -> um.getDateTime().toLocalDate()))
 
-                /* Time complexity #2 (#3 + #4) is O(2N) = O(N). */
+                /* Iterates day by day and collects elements into resulting list of UserMealWithExcess.
+                Time complexity #2 (#3 + #4) is O(2N) = O(N). */
                 .entrySet().stream()
-                .collect(LinkedList::new, (resultList, listEntry) -> {
-                    /* Time complexity #3 is O(N). */
+                .collect(ArrayList::new, (resultList, listEntry) -> {
+                    /* Calculates sum of calories per distinct day.
+                    Time complexity #3 is O(N). */
                     int caloriesSum = listEntry.getValue().stream().mapToInt(UserMeal::getCalories).sum();
-                    /* Time complexity #4 is O(N). */
+                    /* Collects elements by filtering during iteration over list of UserMeal for distinct day.
+                    Time complexity #4 is O(N). */
                     listEntry.getValue().stream()
+                            // Filters by left-opened hours interval.
                             .filter(um -> TimeUtil.isBetweenHalfOpen(um.getDateTime().toLocalTime(), startTime, endTime))
+                            /* Creates DTO for UserMeal, sets excess by comparing sum of calories per distinct day and
+                            calories daily limit. */
                             .forEach(um -> {
                                 resultList.add(new UserMealWithExcess(um.getDateTime(), um.getDescription(),
                                         um.getCalories(), caloriesSum > caloriesPerDay));
                             });
-                }, LinkedList::addAll);
+                }, List::addAll);
 
         /* Resulting time complexity (#1 + #2) is O(N) + O(N) = O(2N) = O(N). */
     }
