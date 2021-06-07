@@ -2,7 +2,7 @@ package ru.javawebinar.topjava.web;
 
 import org.slf4j.Logger;
 import ru.javawebinar.topjava.dao.CrudDatasource;
-import ru.javawebinar.topjava.dao.MealsDatasourceInMemory;
+import ru.javawebinar.topjava.dao.InMemoryMealDatasource;
 import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.model.MealTo;
 import ru.javawebinar.topjava.util.MealsUtil;
@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -23,81 +22,90 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class MealServlet extends HttpServlet {
     private static final Logger log = getLogger(MealServlet.class);
 
+    /** Default encoding. */
+    private final String DEFAULT_ENCODING = "UTF-8";
+
     /** Daily calories limit. */
     private static final int CALORIES_PER_DAY = 2000;
 
-    /** Left bound for time filter. */
-    private static final LocalTime START_TIME = LocalTime.of(0, 0);
-
-    /** Right bound for time filter. */
-    private static final LocalTime END_TIME = LocalTime.of(23, 59);
-
-    /** Patter for input datetime formatter .*/
-    private static final String DATETIME_INPUT_PATTERN = "yyyy-MM-dd'T'HH:mm";
-
-    /** Datetime formatter for that servlet. */
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_INPUT_PATTERN);
-
     /** In-memory datasource for Meal. */
-    private final CrudDatasource<Meal> mealsDatasourceInMemory = new MealsDatasourceInMemory(MealsUtil.getDefaultMeals());
+    private CrudDatasource<Meal> crudDatasource;
 
-    /** Default encoding. */
-    private final String DEFAULT_ENCODING = "UTF-8";
+    @Override
+    public void init() throws ServletException {
+        crudDatasource = new InMemoryMealDatasource();
+        MealsUtil.defaultMeals.forEach(crudDatasource::add);
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding(DEFAULT_ENCODING);
+        String idString = request.getParameter("id");
 
-        log.debug("Get from MealServlet");
-
-        String action = request.getParameter("action");
-
-        // Do necessary actions and go away if parameter "action" was defined.
-        if (action != null) {
-            String id = request.getParameter("id");
-            switch (action) {
-                case "create":
-                    request.setAttribute("meal", Meal.empty());
-                    request.getRequestDispatcher("meals_action.jsp").forward(request, response);
-                    return;
-                case "update":
-                    request.setAttribute("meal", mealsDatasourceInMemory.getById(Long.parseLong(id)));
-                    request.getRequestDispatcher("meals_action.jsp").forward(request, response);
-                    return;
-                case "delete":
-                    mealsDatasourceInMemory.delete(Long.parseLong(id));
-                    response.sendRedirect("meals");
-                    return;
-            }
+        switch (String.valueOf(request.getParameter("action"))) {
+            case "create":
+                request.setAttribute("meal", MealsUtil.empty());
+                request.getRequestDispatcher("meals_action.jsp").forward(request, response);
+                break;
+            case "update":
+                request.setAttribute("meal", crudDatasource.getById(Long.parseLong(idString)));
+                request.getRequestDispatcher("meals_action.jsp").forward(request, response);
+                break;
+            case "delete":
+                long id = Long.parseLong(idString);
+                Meal meal = crudDatasource.getById(id);
+                crudDatasource.delete(id);
+                if (log.isDebugEnabled()) {
+                    log.debug("Meal was deleted (id = {}, dateTime = '{}', description = '{}', calories = {})",
+                            meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories());
+                }
+                response.sendRedirect("meals");
+                break;
+            default:
+                List<MealTo> meals = MealsUtil.filteredByStreams(crudDatasource.getAll(), LocalTime.MIN, LocalTime.MAX,
+                        CALORIES_PER_DAY);
+                if (log.isDebugEnabled()) {
+                    log.debug("All meals were got from datasource and were filtered");
+                }
+                request.setAttribute("meals", meals);
+                request.getRequestDispatcher("meals.jsp").forward(request, response);
+                break;
         }
-
-        // Apply filter and show table with meals.
-        List<MealTo> meals = MealsUtil.filteredByStreams(mealsDatasourceInMemory.getAll(), START_TIME, END_TIME,
-                CALORIES_PER_DAY);
-        request.setAttribute("meals", meals);
-        request.getRequestDispatcher("meals.jsp").forward(request, response);
     }
 
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding(DEFAULT_ENCODING);
-
-        log.debug("Post from MealServlet");
-
-        String id = request.getParameter("id");
-
+        String idString = request.getParameter("id");
         String description = request.getParameter("description");
         int calories = Integer.parseInt(request.getParameter("calories"));
+        LocalDateTime parsedDateTime = LocalDateTime.parse(request.getParameter("datetime"),
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        System.out.println(request.getParameter("datetime"));
-
-        LocalDateTime parsedDateTime = LocalDateTime.parse(request.getParameter("datetime"), formatter);
-
-        if (id == null || id.length() == 0 || id.equals("0")) {
-            Meal meal = new Meal(MealsUtil.getGeneratedId(), parsedDateTime, description, calories);
-            mealsDatasourceInMemory.add(meal);
+        if (idString == null || idString.length() == 0 || idString.equals("0")) {
+            Meal meal = new Meal(0, parsedDateTime, description, calories);
+            if (crudDatasource.add(meal) == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("New meal was added (dateTime = '{}', description = '{}', calories = {})",
+                            meal.getDateTime(), meal.getDescription(), meal.getCalories());
+                }
+            } else {
+                log.error("Failed to add new meal. Internal error.");
+            }
         } else {
-            Meal meal = new Meal(Integer.parseInt(id), parsedDateTime, description, calories);
-            mealsDatasourceInMemory.update(meal);
+            Meal meal = new Meal(Long.parseLong(idString), parsedDateTime, description, calories);
+            Meal mealOld = crudDatasource.update(meal);
+
+            if (mealOld != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Meal was updated (id = {}, dateTime = '{}' -> '{}', description = '{}' -> '{}', " +
+                                    "calories = {} -> {})", meal.getId(), mealOld.getDateTime(), meal.getDateTime(),
+                            mealOld.getDescription(), meal.getDescription(), mealOld.getCalories(), meal.getCalories());
+                }
+            } else {
+                log.error("Failed to update meal (id = {}, dateTime = '{}', description = '{}', calories = {})",
+                        meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories());
+            }
         }
 
         response.sendRedirect("meals");

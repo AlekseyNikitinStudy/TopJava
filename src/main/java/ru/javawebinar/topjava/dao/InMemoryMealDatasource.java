@@ -2,9 +2,11 @@ package ru.javawebinar.topjava.dao;
 
 import ru.javawebinar.topjava.model.Meal;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Implementation of CrudDatasource as in-memory data source for Meal.
@@ -13,34 +15,22 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @see Meal
  */
 
-public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
-    /** List of Meals. */
-    private final List<Meal> meals;
+public class InMemoryMealDatasource implements CrudDatasource<Meal> {
+    /**
+     * Concurrent incremented sequence. Using for generate new unique identifier for Meal record.
+     */
+    private static final AtomicLong idSequence = new AtomicLong();
+
+    /**
+     * List of Meals.
+     */
+    private final ConcurrentMap<Long, Meal> meals;
 
     /**
      * Default constructor.
      */
-    public MealsDatasourceInMemory() {
-        meals = new CopyOnWriteArrayList<>();
-    }
-
-    /**
-     * Constructor with initial values.
-     *
-     * @param meals initial list of Meals
-     */
-    public MealsDatasourceInMemory(List<Meal> meals) {
-        this.meals = new CopyOnWriteArrayList<>(meals);
-    }
-
-    /**
-     * Get amount of records.
-     *
-     * @return amount of records.
-     */
-    @Override
-    public long size() {
-        return meals.size();
+    public InMemoryMealDatasource() {
+        meals = new ConcurrentHashMap<>();
     }
 
     /**
@@ -49,8 +39,9 @@ public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
      * @param record new record.
      */
     @Override
-    public void add(Meal record) {
-        meals.add(record);
+    public Meal add(Meal record) {
+        long id = idSequence.incrementAndGet();
+        return meals.putIfAbsent(id, new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories()));
     }
 
     /**
@@ -59,8 +50,8 @@ public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
      * @param record record which have to update.
      */
     @Override
-    public void update(Meal record) {
-        Collections.replaceAll(meals, getById(record.getId()), record);
+    public Meal update(Meal record) {
+        return meals.put(record.getId(), record);
     }
 
     /**
@@ -70,7 +61,7 @@ public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
      */
     @Override
     public void delete(long id) {
-        meals.removeIf(meal -> meal.getId() == id);
+        meals.remove(id);
     }
 
     /**
@@ -81,7 +72,7 @@ public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
      */
     @Override
     public Meal getById(long id) {
-        return meals.stream().filter(meal -> meal.getId() == id).findFirst().orElse(null);
+        return meals.getOrDefault(id, null);
     }
 
     /**
@@ -91,6 +82,6 @@ public class MealsDatasourceInMemory implements CrudDatasource<Meal> {
      */
     @Override
     public List<Meal> getAll() {
-        return meals;
+        return new ArrayList<>(meals.values());
     }
 }

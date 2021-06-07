@@ -22,15 +22,6 @@ public class Meal {
     }
 
     /**
-     * Create empty record.
-     *
-     * @return empty record.
-     */
-    public static Meal empty() {
-        return new Meal(0,  LocalDateTime.now(), "", 0);
-    }
-
-    /**
      * Get identifier.
      *
      * @return identifier.

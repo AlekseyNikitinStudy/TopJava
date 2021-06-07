@@ -10,25 +10,18 @@ import java.util.List;
 
 public interface CrudDatasource<T> {
     /**
-     * Get amount of records.
-     *
-     * @return amount of records.
-     */
-    long size();
-
-    /**
      * Add new record into data source.
      *
      * @param record new record.
      */
-    void add(T record);
+    T add(T record);
 
     /**
      * Update record in data source.
      *
      * @param record record which have to update.
      */
-    void update(T record);
+    T update(T record);
 
     /**
      * Delete record from data source.
@@ -40,7 +33,7 @@ public interface CrudDatasource<T> {
     /**
      * Get record having identifier.
      *
-     * @param id identifier of record which have to get.
+     * @param id identifier for record which have to get.
      * @return record having identifier of null if there isn't matching record.
      */
     T getById(long id);
