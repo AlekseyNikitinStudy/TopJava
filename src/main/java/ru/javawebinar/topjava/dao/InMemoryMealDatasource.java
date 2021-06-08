@@ -4,8 +4,8 @@ import ru.javawebinar.topjava.model.Meal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -19,12 +19,12 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
     /**
      * Concurrent incremented sequence. Using for generate new unique identifier for Meal record.
      */
-    private static final AtomicLong idSequence = new AtomicLong();
+    private final AtomicLong idSequence = new AtomicLong();
 
     /**
      * List of Meals.
      */
-    private final ConcurrentMap<Long, Meal> meals;
+    private final Map<Long, Meal> meals;
 
     /**
      * Default constructor.
@@ -41,7 +41,8 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
     @Override
     public Meal add(Meal record) {
         long id = idSequence.incrementAndGet();
-        return meals.putIfAbsent(id, new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories()));
+        Meal meal = new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories());
+        return meals.put(id, meal) == null ? meal : null;
     }
 
     /**
@@ -51,7 +52,13 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
      */
     @Override
     public Meal update(Meal record) {
-        return meals.put(record.getId(), record);
+        long id = record.getId();
+        if (getById(id) != null) {
+            Meal meal = new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories());
+            return meals.put(id, meal) == null ? null : meal;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -72,7 +79,7 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
      */
     @Override
     public Meal getById(long id) {
-        return meals.getOrDefault(id, null);
+        return meals.get(id);
     }
 
     /**

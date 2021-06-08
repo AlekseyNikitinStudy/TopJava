@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -22,13 +21,19 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class MealServlet extends HttpServlet {
     private static final Logger log = getLogger(MealServlet.class);
 
-    /** Default encoding. */
+    /**
+     * Default encoding.
+     */
     private final String DEFAULT_ENCODING = "UTF-8";
 
-    /** Daily calories limit. */
+    /**
+     * Daily calories limit.
+     */
     private static final int CALORIES_PER_DAY = 2000;
 
-    /** In-memory datasource for Meal. */
+    /**
+     * In-memory datasource for Meal.
+     */
     private CrudDatasource<Meal> crudDatasource;
 
     @Override
@@ -44,29 +49,26 @@ public class MealServlet extends HttpServlet {
 
         switch (String.valueOf(request.getParameter("action"))) {
             case "create":
+                log.debug("Forwarded to meal creation page.");
                 request.setAttribute("meal", MealsUtil.empty());
                 request.getRequestDispatcher("meals_action.jsp").forward(request, response);
                 break;
             case "update":
-                request.setAttribute("meal", crudDatasource.getById(Long.parseLong(idString)));
+                long id = Long.parseLong(idString);
+                log.debug("Forwarded to meal update page. Meal's id = {}", id);
+                request.setAttribute("meal", crudDatasource.getById(id));
                 request.getRequestDispatcher("meals_action.jsp").forward(request, response);
                 break;
             case "delete":
-                long id = Long.parseLong(idString);
-                Meal meal = crudDatasource.getById(id);
+                id = Long.parseLong(idString);
                 crudDatasource.delete(id);
-                if (log.isDebugEnabled()) {
-                    log.debug("Meal was deleted (id = {}, dateTime = '{}', description = '{}', calories = {})",
-                            meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories());
-                }
+                log.debug("Meal having id = {} was deleted", id);
                 response.sendRedirect("meals");
                 break;
             default:
                 List<MealTo> meals = MealsUtil.filteredByStreams(crudDatasource.getAll(), LocalTime.MIN, LocalTime.MAX,
                         CALORIES_PER_DAY);
-                if (log.isDebugEnabled()) {
-                    log.debug("All meals were got from datasource and were filtered");
-                }
+                log.debug("All meals were got from datasource and were filtered.");
                 request.setAttribute("meals", meals);
                 request.getRequestDispatcher("meals.jsp").forward(request, response);
                 break;
@@ -79,32 +81,24 @@ public class MealServlet extends HttpServlet {
         String idString = request.getParameter("id");
         String description = request.getParameter("description");
         int calories = Integer.parseInt(request.getParameter("calories"));
-        LocalDateTime parsedDateTime = LocalDateTime.parse(request.getParameter("datetime"),
-                DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        LocalDateTime parsedDateTime = LocalDateTime.parse(request.getParameter("datetime"));
 
-        if (idString == null || idString.length() == 0 || idString.equals("0")) {
-            Meal meal = new Meal(0, parsedDateTime, description, calories);
-            if (crudDatasource.add(meal) == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("New meal was added (dateTime = '{}', description = '{}', calories = {})",
-                            meal.getDateTime(), meal.getDescription(), meal.getCalories());
-                }
+        if (idString == null || idString.isEmpty()) {
+            Meal meal = crudDatasource.add(new Meal(null, parsedDateTime, description, calories));
+            if (meal != null) {
+                log.debug("New meal was added (id = {}, dateTime = '{}', description = '{}', calories = {}).",
+                        meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories());
             } else {
-                log.error("Failed to add new meal. Internal error.");
+                log.debug("Failed to add new meal.");
             }
         } else {
-            Meal meal = new Meal(Long.parseLong(idString), parsedDateTime, description, calories);
-            Meal mealOld = crudDatasource.update(meal);
-
-            if (mealOld != null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Meal was updated (id = {}, dateTime = '{}' -> '{}', description = '{}' -> '{}', " +
-                                    "calories = {} -> {})", meal.getId(), mealOld.getDateTime(), meal.getDateTime(),
-                            mealOld.getDescription(), meal.getDescription(), mealOld.getCalories(), meal.getCalories());
-                }
-            } else {
-                log.error("Failed to update meal (id = {}, dateTime = '{}', description = '{}', calories = {})",
+            long id = Long.parseLong(idString);
+            Meal meal = crudDatasource.update(new Meal(id, parsedDateTime, description, calories));
+            if (meal != null) {
+                log.debug("Meal was updated (id = {}, dateTime = '{}', description = '{}', calories = {}).",
                         meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories());
+            } else {
+                log.debug("Failed to update meal.");
             }
         }
 

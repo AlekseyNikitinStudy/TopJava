@@ -23,13 +23,13 @@
     </tr>
 
     <c:forEach var="meal" items="${meals}">
-        <javatime:format value="${meal.getDateTime()}" pattern="yyyy-MM-dd HH:mm" var="parsedDateTime"/>
-        <tr class="${meal.isExcess() ? 'td_mealExcess' : 'td_mealNotExcess'}">
+        <javatime:format value="${meal.dateTime}" pattern="yyyy-MM-dd HH:mm" var="parsedDateTime"/>
+        <tr class="${meal.excess ? 'td_mealExcess' : 'td_mealNotExcess'}">
             <td>${parsedDateTime}</td>
-            <td>${meal.getDescription()}</td>
-            <td>${meal.getCalories()}</td>
-            <td><a href="?action=update&id=${meal.getId()}">update</a></td>
-            <td><a href="?action=delete&id=${meal.getId()}">delete</a></td>
+            <td>${meal.description}</td>
+            <td>${meal.calories}</td>
+            <td><a href="?action=update&id=${meal.id}">update</a></td>
+            <td><a href="?action=delete&id=${meal.id}">delete</a></td>
         </tr>
     </c:forEach>
 
