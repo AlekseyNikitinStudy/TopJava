@@ -68,7 +68,7 @@ public class MealServlet extends HttpServlet {
             default:
                 List<MealTo> meals = MealsUtil.filteredByStreams(crudDatasource.getAll(), LocalTime.MIN, LocalTime.MAX,
                         CALORIES_PER_DAY);
-                log.debug("All meals were got from datasource and were filtered.");
+                log.debug("All meals were got from datasource.");
                 request.setAttribute("meals", meals);
                 request.getRequestDispatcher("meals.jsp").forward(request, response);
                 break;

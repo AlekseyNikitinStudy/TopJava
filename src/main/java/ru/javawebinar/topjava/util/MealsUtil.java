@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class MealsUtil {
      * @return empty meal.
      */
     public static Meal empty() {
-        return new Meal(null, LocalDateTime.now().withSecond(0).withNano(0), "", 0);
+        return new Meal(null, LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), "", 0);
     }
 
 

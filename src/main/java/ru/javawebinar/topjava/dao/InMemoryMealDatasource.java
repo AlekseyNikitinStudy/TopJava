@@ -42,7 +42,8 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
     public Meal add(Meal record) {
         long id = idSequence.incrementAndGet();
         Meal meal = new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories());
-        return meals.put(id, meal) == null ? meal : null;
+        meals.put(id, meal);
+        return meal;
     }
 
     /**
@@ -53,12 +54,8 @@ public class InMemoryMealDatasource implements CrudDatasource<Meal> {
     @Override
     public Meal update(Meal record) {
         long id = record.getId();
-        if (getById(id) != null) {
-            Meal meal = new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories());
-            return meals.put(id, meal) == null ? null : meal;
-        } else {
-            return null;
-        }
+        Meal meal = new Meal(id, record.getDateTime(), record.getDescription(), record.getCalories());
+        return meals.replace(id, meal) == null ? null : meal;
     }
 
     /**

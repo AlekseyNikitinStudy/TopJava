@@ -13,7 +13,7 @@
 <jsp:useBean id="meal" scope="request" type="ru.javawebinar.topjava.model.Meal"/>
 <javatime:format value="${meal.dateTime}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDateTime"/>
 
-<h2>${meal.id == 0 ? 'New meal' : 'Edit meal'}</h2>
+<h2>${empty meal.id ? 'New meal' : 'Edit meal'}</h2>
 
 <form method="post" action="meals" enctype="application/x-www-form-urlencoded">
     <input type="hidden" name="id" value="${meal.id}">
