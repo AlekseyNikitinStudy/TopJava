@@ -11,6 +11,7 @@ import ru.javawebinar.topjava.web.SecurityUtil;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static ru.javawebinar.topjava.util.ValidationUtil.assureIdConsistent;
@@ -29,6 +30,11 @@ public class MealRestController {
     }
 
     public List<MealTo> getAllForUserFiltered(LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime) {
+        startDate = startDate == null ? LocalDate.MIN : startDate;
+        endDate = endDate == null ? LocalDate.MAX : endDate;
+        startTime = startTime == null ? LocalTime.MIN : startTime;
+        endTime = endTime == null ? LocalTime.MAX.truncatedTo(ChronoUnit.MINUTES) : endTime;
+
         log.info("getAll for authUserId");
         return service.getAllForUserFiltered(SecurityUtil.authUserId(), SecurityUtil.authUserCaloriesPerDay(),
                 startDate, startTime, endDate, endTime);
@@ -54,6 +60,7 @@ public class MealRestController {
         log.info("create {}", meal);
         checkNew(meal);
         meal.setUserId(SecurityUtil.authUserId());
+        log.info("create with current user {}", meal);
         return service.create(meal);
     }
 }

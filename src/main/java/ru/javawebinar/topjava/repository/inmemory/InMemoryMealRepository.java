@@ -7,29 +7,67 @@ import ru.javawebinar.topjava.util.DateTimeUtil;
 import ru.javawebinar.topjava.util.MealsUtil;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Repository
-public class InMemoryMealRepository extends InMemoryAbstractRepository<Meal> implements MealRepository {
+public class InMemoryMealRepository extends InMemoryAbstractRepository implements MealRepository {
+    private static final Comparator<Meal> COMPARATOR_DATE = Comparator.comparing(Meal::getDate).reversed();
+
+    private final Map<Integer, Meal> repository = new ConcurrentHashMap<>();
 
     {
-        MealsUtil.meals.forEach(this::save);
+        MealsUtil.meals.forEach(meal -> save(meal, meal.getUserId()));
+        MealsUtil.meals.forEach(System.out::println);
     }
 
     @Override
-    public List<Meal> getAllByUserId(int userId) {
+    public Meal save(Meal meal, int userId) {
+        if (meal.isNew()) {
+            meal.setId(counter.incrementAndGet());
+            meal.setUserId(userId);
+        } else {
+            MealsUtil.checkUserOwning(meal, userId);
+        }
+
+        repository.put(meal.getId(), meal);
+        return meal;
+    }
+
+    @Override
+    public boolean delete(int id, int userId) {
+        log.info("delete {}", id);
+        return repository.remove(id, MealsUtil.checkUserOwning(repository.get(id), userId));
+    }
+
+    @Override
+    public Meal get(int id, int userId) {
+        return MealsUtil.checkUserOwning(repository.get(id), userId);
+    }
+
+    @Override
+    public List<Meal> getAll(int userId) {
         log.info("getAll");
-        return getAllByUserIdFilteredByDate(userId, LocalDate.MIN, LocalDate.MAX);
+        return getAllFiltered(userId, meal -> true);
     }
 
     @Override
-    public List<Meal> getAllByUserIdFilteredByDate(int userId, LocalDate startDate, LocalDate endDate) {
+    public List<Meal> getAllByDate(int userId, LocalDate startDate, LocalDate endDate) {
         log.info("getAll filtered by date");
+        return getAllFiltered(userId, meal -> DateTimeUtil.isBetween(meal.getDate(), startDate, endDate));
+
+    }
+
+    private List<Meal> getAllFiltered(int userId, Predicate<Meal> filter) {
+        log.info("getAll filtered");
         return repository.values().stream()
                 .filter(meal -> meal.getUserId() != null && meal.getUserId() == userId)
-                .filter(meal -> DateTimeUtil.isBetweenHalfOpen(meal.getDate(), startDate, endDate))
-                .sorted(Meal.COMPARATOR_DATE)
+                .filter(filter)
+                .sorted(COMPARATOR_DATE)
                 .collect(Collectors.toList());
     }
 }

@@ -21,35 +21,31 @@
     <h3><a href="index.html">Home</a></h3>
     <hr/>
     <h2>Meals</h2>
-    <jsp:useBean id="startDate" type="java.time.LocalDate" scope="request"/>
-    <jsp:useBean id="endDate" type="java.time.LocalDate" scope="request"/>
-    <jsp:useBean id="startTime" type="java.time.LocalTime" scope="request"/>
-    <jsp:useBean id="endTime" type="java.time.LocalTime" scope="request"/>
     <form method="get" action="meals">
         <table border="1" cellpadding="8" cellspacing="0">
             <tr>
                 <td>
                     <dl>
                         <dt>StartDate:</dt>
-                        <dd><input type="date" value="${startDate}" name="startDate"></dd>
+                        <dd><input type="date" name="startDate"></dd>
                     </dl>
                 </td>
                 <td>
                     <dl>
                         <dt>EndDate:</dt>
-                        <dd><input type="date" value="${endDate}" name="endDate"></dd>
+                        <dd><input type="date" name="endDate"></dd>
                     </dl>
                 </td>
                 <td>
                     <dl>
                         <dt>StartTime:</dt>
-                        <dd><input type="time" value="${startTime}" name="startTime"></dd>
+                        <dd><input type="time" name="startTime"></dd>
                     </dl>
                 </td>
                 <td>
                     <dl>
                         <dt>EndTime:</dt>
-                        <dd><input type="time" value="${endTime}" name="endTime"></dd>
+                        <dd><input type="time" name="endTime"></dd>
                     </dl>
                 </td>
             </tr>

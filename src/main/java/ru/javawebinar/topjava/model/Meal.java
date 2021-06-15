@@ -3,7 +3,6 @@ package ru.javawebinar.topjava.model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Comparator;
 
 public class Meal extends AbstractBaseEntity {
 
@@ -14,8 +13,6 @@ public class Meal extends AbstractBaseEntity {
     private final int calories;
 
     private Integer userId;
-
-    public static final Comparator<Meal> COMPARATOR_DATE = Comparator.comparing(Meal::getDate).reversed();
 
     public Meal(LocalDateTime dateTime, String description, int calories) {
         this(null, dateTime, description, calories);
@@ -29,7 +26,7 @@ public class Meal extends AbstractBaseEntity {
         this.calories = calories;
     }
 
-    public Meal(Integer userId, Integer id, LocalDateTime dateTime, String description, int calories) {
+    public Meal(Integer id, LocalDateTime dateTime, String description, int calories, Integer userId) {
         this(id, dateTime, description, calories);
         this.userId = userId;
     }
