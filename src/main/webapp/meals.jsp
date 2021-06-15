@@ -21,6 +21,46 @@
     <h3><a href="index.html">Home</a></h3>
     <hr/>
     <h2>Meals</h2>
+    <jsp:useBean id="startDate" type="java.time.LocalDate" scope="request"/>
+    <jsp:useBean id="endDate" type="java.time.LocalDate" scope="request"/>
+    <jsp:useBean id="startTime" type="java.time.LocalTime" scope="request"/>
+    <jsp:useBean id="endTime" type="java.time.LocalTime" scope="request"/>
+    <form method="get" action="meals">
+        <table border="1" cellpadding="8" cellspacing="0">
+            <tr>
+                <td>
+                    <dl>
+                        <dt>StartDate:</dt>
+                        <dd><input type="date" value="${startDate}" name="startDate"></dd>
+                    </dl>
+                </td>
+                <td>
+                    <dl>
+                        <dt>EndDate:</dt>
+                        <dd><input type="date" value="${endDate}" name="endDate"></dd>
+                    </dl>
+                </td>
+                <td>
+                    <dl>
+                        <dt>StartTime:</dt>
+                        <dd><input type="time" value="${startTime}" name="startTime"></dd>
+                    </dl>
+                </td>
+                <td>
+                    <dl>
+                        <dt>EndTime:</dt>
+                        <dd><input type="time" value="${endTime}" name="endTime"></dd>
+                    </dl>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <button type="submit">Filter</button>
+                </td>
+            </tr>
+        </table>
+    </form>
+
     <a href="meals?action=create">Add Meal</a>
     <br><br>
     <table border="1" cellpadding="8" cellspacing="0">
@@ -34,7 +74,7 @@
         </tr>
         </thead>
         <c:forEach items="${meals}" var="meal">
-            <jsp:useBean id="meal" type="ru.javawebinar.topjava.model.MealTo"/>
+            <jsp:useBean id="meal" type="ru.javawebinar.topjava.to.MealTo"/>
             <tr class="${meal.excess ? 'excess' : 'normal'}">
                 <td>
                         <%--${meal.dateTime.toLocalDate()} ${meal.dateTime.toLocalTime()}--%>
