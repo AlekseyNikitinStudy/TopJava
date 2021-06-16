@@ -24,19 +24,19 @@ public class MealRestController {
     @Autowired
     private MealService service;
 
-    public List<MealTo> getAllForUser() {
+    public List<MealTo> getAll() {
         log.info("getAll for authUserId");
-        return service.getAllForUser(SecurityUtil.authUserId(), SecurityUtil.authUserCaloriesPerDay());
+        return service.getAll(SecurityUtil.authUserId(), SecurityUtil.authUserCaloriesPerDay());
     }
 
-    public List<MealTo> getAllForUserFiltered(LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime) {
+    public List<MealTo> getAllFiltered(LocalDate startDate, LocalTime startTime, LocalDate endDate, LocalTime endTime) {
         startDate = startDate == null ? LocalDate.MIN : startDate;
         endDate = endDate == null ? LocalDate.MAX : endDate;
         startTime = startTime == null ? LocalTime.MIN : startTime;
         endTime = endTime == null ? LocalTime.MAX.truncatedTo(ChronoUnit.MINUTES) : endTime;
 
         log.info("getAll for authUserId");
-        return service.getAllForUserFiltered(SecurityUtil.authUserId(), SecurityUtil.authUserCaloriesPerDay(),
+        return service.getAllFiltered(SecurityUtil.authUserId(), SecurityUtil.authUserCaloriesPerDay(),
                 startDate, startTime, endDate, endTime);
     }
 

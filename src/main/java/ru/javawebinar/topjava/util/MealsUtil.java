@@ -54,10 +54,4 @@ public class MealsUtil {
     private static MealTo createTo(Meal meal, boolean excess) {
         return new MealTo(meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories(), excess);
     }
-
-    public static Meal checkUserOwning(Meal meal, int userId) {
-        ValidationUtil.checkNotFound(meal.getUserId() != null && meal.getUserId() == userId,
-                "with id=" + meal.getId() + " for userId=" + String.valueOf(userId));
-        return meal;
-    }
 }

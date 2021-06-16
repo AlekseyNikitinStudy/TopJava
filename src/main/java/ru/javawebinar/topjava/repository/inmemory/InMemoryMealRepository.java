@@ -5,11 +5,10 @@ import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.repository.MealRepository;
 import ru.javawebinar.topjava.util.DateTimeUtil;
 import ru.javawebinar.topjava.util.MealsUtil;
+import ru.javawebinar.topjava.util.ValidationUtil;
 
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
 public class InMemoryMealRepository extends InMemoryAbstractRepository implements MealRepository {
     private static final Comparator<Meal> COMPARATOR_DATE = Comparator.comparing(Meal::getDate).reversed();
 
-    private final Map<Integer, Meal> repository = new ConcurrentHashMap<>();
+    private final Map<Integer, Map<Integer, Meal>> repository = new ConcurrentHashMap<>();
 
     {
         MealsUtil.meals.forEach(meal -> save(meal, meal.getUserId()));
@@ -29,24 +28,30 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
     public Meal save(Meal meal, int userId) {
         if (meal.isNew()) {
             meal.setId(counter.incrementAndGet());
-            meal.setUserId(userId);
         } else {
-            MealsUtil.checkUserOwning(meal, userId);
+            int id = meal.getId();
+            ValidationUtil.checkNotFoundWithId(getMeals(userId).get(id), id);
         }
 
-        repository.put(meal.getId(), meal);
+        meal.setUserId(userId);
+        Map<Integer, Meal> meals = repository.getOrDefault(userId, new HashMap<>());
+        meals.put(meal.getId(), meal);
+        repository.put(userId, meals);
+
         return meal;
     }
 
     @Override
     public boolean delete(int id, int userId) {
         log.info("delete {}", id);
-        return repository.remove(id, MealsUtil.checkUserOwning(repository.get(id), userId));
+        Map<Integer, Meal> meals = getMeals(userId);
+        ValidationUtil.checkNotFoundWithId(meals.get(id), id);
+        return meals.remove(id) != null;
     }
 
     @Override
     public Meal get(int id, int userId) {
-        return MealsUtil.checkUserOwning(repository.get(id), userId);
+        return ValidationUtil.checkNotFoundWithId(getMeals(userId).get(id), id);
     }
 
     @Override
@@ -59,16 +64,17 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
     public List<Meal> getAllByDate(int userId, LocalDate startDate, LocalDate endDate) {
         log.info("getAll filtered by date");
         return getAllFiltered(userId, meal -> DateTimeUtil.isBetween(meal.getDate(), startDate, endDate));
-
     }
 
     private List<Meal> getAllFiltered(int userId, Predicate<Meal> filter) {
         log.info("getAll filtered");
-        return repository.values().stream()
-                .filter(meal -> meal.getUserId() != null && meal.getUserId() == userId)
+        return repository.getOrDefault(userId, Collections.emptyMap()).values().stream()
                 .filter(filter)
                 .sorted(COMPARATOR_DATE)
                 .collect(Collectors.toList());
     }
-}
 
+    private Map<Integer, Meal> getMeals(int userId) {
+        return repository.getOrDefault(userId, Collections.emptyMap());
+    }
+}
