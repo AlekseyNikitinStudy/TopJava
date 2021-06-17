@@ -42,8 +42,9 @@ public class InMemoryUserRepository extends InMemoryAbstractRepository implement
     @Override
     public User getByEmail(String email) {
         log.info("getByEmail {}", email);
-        return repository.values().stream().filter(user -> user.getEmail().toLowerCase(Locale.ROOT)
-                .equals(email.toLowerCase(Locale.ROOT))).findFirst().orElse(null);
+        return repository.values().stream()
+                .filter(user -> user.getEmail().toLowerCase(Locale.ROOT).equals(email.toLowerCase(Locale.ROOT)))
+                .findFirst().orElse(null);
     }
 
     @Override

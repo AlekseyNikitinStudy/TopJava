@@ -5,6 +5,7 @@ import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.repository.MealRepository;
 import ru.javawebinar.topjava.to.MealTo;
 import ru.javawebinar.topjava.util.MealsUtil;
+import ru.javawebinar.topjava.util.ValidationUtil;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -19,20 +20,20 @@ public class MealService {
         this.repository = repository;
     }
 
-    public Meal create(Meal meal) {
-        return repository.save(meal, meal.getUserId());
+    public Meal create(Meal meal, int userId) {
+        return repository.save(meal, userId);
     }
 
     public void delete(int id, int userId) {
-        repository.delete(id, userId);
+        ValidationUtil.checkNotFoundWithId(repository.delete(id, userId), id);
     }
 
     public void update(Meal meal, int userId) {
-        repository.save(meal, userId);
+        ValidationUtil.checkNotFoundWithId(repository.save(meal, userId), meal.getId());
     }
 
     public Meal get(int id, int userId) {
-        return repository.get(id, userId);
+        return ValidationUtil.checkNotFoundWithId(repository.get(id, userId), id);
     }
 
     public List<MealTo> getAll(int userId, int caloriesPerDay) {
@@ -42,7 +43,7 @@ public class MealService {
     public List<MealTo> getAllFiltered(int userId, int caloriesPerDay,
                                        LocalDate startDate, LocalTime startTime,
                                        LocalDate endDate, LocalTime endTime) {
-        return MealsUtil.getFilteredTos(repository.getAllByDate(userId, startDate, endDate),
+        return MealsUtil.getFilteredTos(repository.getAllBetweenDates(userId, startDate, endDate),
                 caloriesPerDay, startTime, endTime);
     }
 }

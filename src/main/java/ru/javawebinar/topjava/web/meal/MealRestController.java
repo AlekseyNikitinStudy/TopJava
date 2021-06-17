@@ -59,8 +59,6 @@ public class MealRestController {
     public Meal create(Meal meal) {
         log.info("create {}", meal);
         checkNew(meal);
-        meal.setUserId(SecurityUtil.authUserId());
-        log.info("create with current user {}", meal);
-        return service.create(meal);
+        return service.create(meal, SecurityUtil.authUserId());
     }
 }

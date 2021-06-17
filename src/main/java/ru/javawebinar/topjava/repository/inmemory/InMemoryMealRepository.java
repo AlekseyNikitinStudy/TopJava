@@ -5,10 +5,12 @@ import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.repository.MealRepository;
 import ru.javawebinar.topjava.util.DateTimeUtil;
 import ru.javawebinar.topjava.util.MealsUtil;
-import ru.javawebinar.topjava.util.ValidationUtil;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -21,7 +23,6 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
 
     {
         MealsUtil.meals.forEach(meal -> save(meal, meal.getUserId()));
-        MealsUtil.meals.forEach(System.out::println);
     }
 
     @Override
@@ -30,14 +31,14 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
             meal.setId(counter.incrementAndGet());
         } else {
             int id = meal.getId();
-            ValidationUtil.checkNotFoundWithId(getMeals(userId).get(id), id);
+            if (getMeals(userId).get(id) == null) {
+                return null;
+            }
         }
 
-        meal.setUserId(userId);
-        Map<Integer, Meal> meals = repository.getOrDefault(userId, new HashMap<>());
+        Map<Integer, Meal> meals = repository.getOrDefault(userId, new ConcurrentHashMap<>());
         meals.put(meal.getId(), meal);
         repository.put(userId, meals);
-
         return meal;
     }
 
@@ -45,13 +46,12 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
     public boolean delete(int id, int userId) {
         log.info("delete {}", id);
         Map<Integer, Meal> meals = getMeals(userId);
-        ValidationUtil.checkNotFoundWithId(meals.get(id), id);
         return meals.remove(id) != null;
     }
 
     @Override
     public Meal get(int id, int userId) {
-        return ValidationUtil.checkNotFoundWithId(getMeals(userId).get(id), id);
+        return getMeals(userId).get(id);
     }
 
     @Override
@@ -61,9 +61,10 @@ public class InMemoryMealRepository extends InMemoryAbstractRepository implement
     }
 
     @Override
-    public List<Meal> getAllByDate(int userId, LocalDate startDate, LocalDate endDate) {
+    public List<Meal> getAllBetweenDates(int userId, LocalDate startDate, LocalDate endDate) {
         log.info("getAll filtered by date");
-        return getAllFiltered(userId, meal -> DateTimeUtil.isBetween(meal.getDate(), startDate, endDate));
+        return getAllFiltered(userId, meal -> DateTimeUtil.isBetween(meal.getDate(), startDate, endDate,
+                DateTimeUtil.rightClosed));
     }
 
     private List<Meal> getAllFiltered(int userId, Predicate<Meal> filter) {
