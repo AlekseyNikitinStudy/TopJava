@@ -39,7 +39,7 @@ public class JdbcMealRepository implements MealRepository {
     public Meal save(Meal meal, int userId) {
         MapSqlParameterSource map = new MapSqlParameterSource()
                 .addValue("id", meal.getId())
-                .addValue("datetime", meal.getDateTime())
+                .addValue("dateTime", meal.getDateTime())
                 .addValue("description", meal.getDescription())
                 .addValue("calories", meal.getCalories())
                 .addValue("userId", userId);
@@ -48,7 +48,7 @@ public class JdbcMealRepository implements MealRepository {
             Number newKey = insertMeal.executeAndReturnKey(map);
             meal.setId(newKey.intValue());
         } else if (namedParameterJdbcTemplate.update(
-                "UPDATE meals SET datetime=:datetime, description=:description, calories=:calories " +
+                "UPDATE meals SET date_time=:dateTime, description=:description, calories=:calories " +
                         "WHERE id=:id and user_id=:userId", map) == 0) {
             return null;
         }
@@ -68,13 +68,15 @@ public class JdbcMealRepository implements MealRepository {
 
     @Override
     public List<Meal> getAll(int userId) {
-        return jdbcTemplate.query("SELECT * FROM meals WHERE user_id=? ORDER BY datetime DESC", ROW_MAPPER, userId);
+        return jdbcTemplate.query("SELECT * FROM meals WHERE user_id=? ORDER BY date_time DESC", ROW_MAPPER, userId);
     }
 
     @Override
     public List<Meal> getBetweenHalfOpen(LocalDateTime startDateTime, LocalDateTime endDateTime, int userId) {
+        System.out.println(startDateTime);
+        System.out.println(endDateTime);
         return jdbcTemplate.query("SELECT * FROM meals WHERE user_id=? " +
-                "AND datetime>=? AND datetime<=?" +
-                "ORDER BY datetime DESC", ROW_MAPPER, userId, startDateTime, endDateTime);
+                "AND date_time>=? AND date_time<?" +
+                "ORDER BY date_time DESC", ROW_MAPPER, userId, startDateTime, endDateTime);
     }
 }

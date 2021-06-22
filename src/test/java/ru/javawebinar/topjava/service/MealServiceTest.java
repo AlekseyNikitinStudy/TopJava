@@ -24,6 +24,7 @@ import static ru.javawebinar.topjava.UserTestData.USER_ID;
 
 @ContextConfiguration({
         "classpath:spring/spring-app.xml",
+        "classpath:spring/spring-jdbc.xml",
         "classpath:spring/spring-db.xml"
 })
 @RunWith(SpringRunner.class)
@@ -70,13 +71,21 @@ public class MealServiceTest {
     public void getBetweenInclusive() {
         List<Meal> between = service.getBetweenInclusive(LocalDate.of(2021, 6, 21),
                 LocalDate.of(2021, 6, 21), USER_ID);
-        assertMatch(between, meal_user_2, meal_user_1);
+        assertMatch(between, meal_user_6, meal_user_5, meal_user_4);
+    }
+
+    @Test
+    public void getBetweenInclusiveNoFilter() {
+        List<Meal> between = service.getBetweenInclusive(null, null, USER_ID);
+        assertMatch(between, meal_user_10, meal_user_9, meal_user_8, meal_user_7, meal_user_6, meal_user_5, meal_user_4,
+                meal_user_3, meal_user_2, meal_user_1);
     }
 
     @Test
     public void getAll() {
         List<Meal> all = service.getAll(USER_ID);
-        assertMatch(all, meal_user_3, meal_user_2, meal_user_1);
+        assertMatch(all, meal_user_10, meal_user_9, meal_user_8, meal_user_7, meal_user_6, meal_user_5, meal_user_4,
+                meal_user_3, meal_user_2, meal_user_1);
     }
 
     @Test
@@ -95,8 +104,8 @@ public class MealServiceTest {
     @Test
     public void updateDublicateUserAndDatetime() {
         assertThrows(DataAccessException.class, () ->
-                service.update(new Meal(null, LocalDateTime.of(2021, 6, 22, 8, 0),
-                        "breakfast", 400), USER_ID));
+                service.update(new Meal(null, REPEAT_DATETIME,
+                        "bla-bla-bla", 100500), USER_ID));
     }
 
     @Test
