@@ -1,5 +1,7 @@
 package ru.javawebinar.topjava;
 
+import org.hibernate.Hibernate;
+
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,7 +23,7 @@ public class MatcherFactory<T> {
     }
 
     public void assertMatch(T actual, T expected) {
-        assertThat(actual).usingRecursiveComparison().ignoringFields(fieldsToIgnore).isEqualTo(expected);
+        assertThat(Hibernate.unproxy(actual)).usingRecursiveComparison().ignoringFields(fieldsToIgnore).isEqualTo(expected);
     }
 
     @SafeVarargs

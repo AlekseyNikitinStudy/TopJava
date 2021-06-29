@@ -1,7 +1,13 @@
 package ru.javawebinar.topjava.service;
 
+import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Stopwatch;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -13,6 +19,8 @@ import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertThrows;
 import static ru.javawebinar.topjava.MealTestData.*;
@@ -27,8 +35,20 @@ import static ru.javawebinar.topjava.UserTestData.USER_ID;
 @Sql(scripts = "classpath:db/populateDB.sql", config = @SqlConfig(encoding = "UTF-8"))
 public class MealServiceTest {
 
+    private static final Logger log = LoggerFactory.getLogger(MealServiceTest.class);
+
     @Autowired
     private MealService service;
+
+    private static final Map<String, Long> durations = new HashMap<>();
+
+    @Rule
+    public Stopwatch stopwatch = new Stopwatch() {
+        protected void finished(long nanos, Description description) {
+            log.info("Test {}() was finished in {} nanos.", description.getMethodName(), nanos);
+            durations.put(description.getMethodName() + "()", nanos);
+        }
+    };
 
     @Test
     public void delete() {
@@ -61,7 +81,6 @@ public class MealServiceTest {
         assertThrows(DataAccessException.class, () ->
                 service.create(new Meal(null, meal1.getDateTime(), "duplicate", 100), USER_ID));
     }
-
 
     @Test
     public void get() {
@@ -108,5 +127,11 @@ public class MealServiceTest {
     @Test
     public void getBetweenWithNullDates() {
         MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), meals);
+    }
+
+    @AfterClass
+    public static void showBenchmark() {
+        System.out.println("Test benchmark information [name]=[duration in nanos]:");
+        durations.entrySet().forEach(System.out::println);
     }
 }
