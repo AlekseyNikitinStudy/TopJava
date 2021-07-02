@@ -19,8 +19,9 @@ import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertThrows;
 import static ru.javawebinar.topjava.MealTestData.*;
@@ -37,18 +38,25 @@ public class MealServiceTest {
 
     private static final Logger log = LoggerFactory.getLogger(MealServiceTest.class);
 
+    private static final Map<String, Long> durations = new LinkedHashMap<>();
+
     @Autowired
     private MealService service;
-
-    private static final Map<String, Long> durations = new HashMap<>();
 
     @Rule
     public Stopwatch stopwatch = new Stopwatch() {
         protected void finished(long nanos, Description description) {
-            log.info("Test {}() was finished in {} nanos.", description.getMethodName(), nanos);
-            durations.put(description.getMethodName() + "()", nanos);
+            long duration = TimeUnit.NANOSECONDS.toMillis(nanos);
+            log.info("Test {}() was finished in {} ms.", description.getMethodName(), duration);
+            durations.put(description.getMethodName() + "()", duration);
         }
     };
+
+    @AfterClass
+    public static void showBenchmark() {
+        log.info("Test benchmark information [name]-[duration in ms]:");
+        durations.forEach((key, value) -> log.info(String.format("%1$-30s %2$d", key, value)));
+    }
 
     @Test
     public void delete() {
@@ -127,11 +135,5 @@ public class MealServiceTest {
     @Test
     public void getBetweenWithNullDates() {
         MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), meals);
-    }
-
-    @AfterClass
-    public static void showBenchmark() {
-        System.out.println("Test benchmark information [name]=[duration in nanos]:");
-        durations.entrySet().forEach(System.out::println);
     }
 }
