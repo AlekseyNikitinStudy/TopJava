@@ -14,6 +14,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.javawebinar.topjava.ActiveDbProfileResolver;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,20 +26,11 @@ import static org.slf4j.LoggerFactory.getLogger;
 })
 @RunWith(SpringRunner.class)
 @Sql(scripts = "classpath:db/populateDB.sql", config = @SqlConfig(encoding = "UTF-8"))
-//@ActiveProfiles(resolver = ActiveDbProfileResolver.class)
-@ActiveProfiles({"postgres", "datajpa"})
+@ActiveProfiles(resolver = ActiveDbProfileResolver.class)
 public abstract class AbstractServiceTest {
     protected static final Logger log = getLogger("result");
 
     protected static final StringBuilder results = new StringBuilder();
-
-    @Autowired
-    protected CacheManager cacheManager;
-
-    @Before
-    public void setup() {
-        cacheManager.getCache("users").clear();
-    }
 
     @Rule
     // http://stackoverflow.com/questions/14892125/what-is-the-best-practice-to-determine-the-execution-time-of-the-bussiness-relev

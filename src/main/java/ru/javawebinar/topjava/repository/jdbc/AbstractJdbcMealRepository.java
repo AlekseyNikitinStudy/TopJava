@@ -76,6 +76,6 @@ public abstract class AbstractJdbcMealRepository implements MealRepository {
                 "SELECT * FROM meals WHERE user_id=? ORDER BY date_time DESC", ROW_MAPPER, userId);
     }
 
-    // это для задания "6.1 @Profile, шаблонный метод, хотя здесь просто переопределение метода в потомке"
+    @Override
     public abstract List<Meal> getBetweenHalfOpen(LocalDateTime startDateTime, LocalDateTime endDateTime, int userId);
 }
